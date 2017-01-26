@@ -108,13 +108,20 @@ function CoreS(container,linkArray,saveFunction,loadString){
 	this.isReady = false;
 	this.saveFunction = saveFunction || function(){};
 	this.loadString = loadString || false;
+	this.help = true;
+	this.isLvlUp = false;
 
 	// Setting up all texts
+	this.intro = {
+		header : 'Пора научиться складывать быстро',
+		text : 'Справа — таблица из чисел от 1 до 100, которые мы будем складывать.',
+		image : false
+	}
 	this.grades = [
 			{
 				id : 0,
 				header : 'Глава 1: Элементарно',
-				text : 'Сначала нужно привыкнуть к самым простым примерам: запомнить сумму чисел в пределах десяти. Жми энтер или тыкай в экран, если в него можно тыкать!',
+				text : 'Отлично! Справа в таблице видны примеры, которые только что решались. Теперь нужно привыкнуть к самым простым примерам: запомнить сумму чисел в пределах десяти. Жми энтер или тыкай в экран, если в него можно тыкать!',
 				image : false
 			},
 			{
@@ -199,7 +206,7 @@ function CoreS(container,linkArray,saveFunction,loadString){
 	}
 
 	//Now adding all entrails
-	this.guts = '<div class = "ssmt_half1"><div class = "ssmt_header" style="opacity: 0"><h1 class = "ssmt_headerh1">Это таблица умножения</h1><p class = "ssmt_headertext">Её нужно запомнить один раз — это сильно упростит жизнь, проблемы уйдут сами собой, а волосы станут мягкими и шелковистыми.</p><div class = "ssmt_stats"><p>Примеров решено: <span class = "ssmt_totalCount">0</span></p><p>Комбо без ошибок: <span class = "ssmt_combo">0</span></p><p>Среднее время на ответ: <span class = "ssmt_atime">0</span></p><p>Нелюбимый пример: <span class = "ssmt_worst">0</span></p></div></div></div><div class = "ssmt_half2"><canvas class = "ssmt_canvas"></canvas></div><div class ="ssmt_hint"></div><div class ="ssmt_mark"></div><div class = "ssmt_example">x × y = </div><input class="ssmt_numpad" type="tel">';
+	this.guts = '<div class = "ssmt_half1"><div class = "ssmt_header" style="opacity: 0"><h1 class = "ssmt_headerh1">Пора научиться складывать быстро</h1><p class = "ssmt_headertext">Справа — таблица из чисел от 1 до 100, которые мы будем складывать.<br />Разберемся по ходу дела! Жми энтер или тыкай в экран, если в него можно тыкать и начинай решать простые примеры.</p><div class = "ssmt_stats"><p>Примеров решено: <span class = "ssmt_totalCount">0</span></p><p>Комбо без ошибок: <span class = "ssmt_combo">0</span></p><p>Среднее время на ответ: <span class = "ssmt_atime">0</span></p><p>Нелюбимый пример: <span class = "ssmt_worst">0</span></p></div></div></div><div class = "ssmt_half2"><canvas class = "ssmt_canvas"></canvas></div><div class ="ssmt_hint"></div><div class ="ssmt_mark"></div><div class = "ssmt_example">x × y = </div><input class="ssmt_numpad" type="tel">';
 	this.container.innerHTML = this.guts;
 
 	//Getting entrails as variables
@@ -285,7 +292,7 @@ function CoreS(container,linkArray,saveFunction,loadString){
 	//Looking for something to load
 	if (this.loadString){
 		var loadStringJSON = JSON.stringify(loadString);
-		localStorage.setItem('MLTPLY', loadStringJSON);
+		localStorage.setItem('SUM', loadStringJSON);
 	};
 
 	// Checking if ready to run (probably not yet)
@@ -349,8 +356,6 @@ CoreS.prototype.updateStats = function(){
 		this.ctx.fillRect(this.cellSize * this.ratio * (i % 100),this.cellSize * this.ratio * Math.floor(i/100), this.cellSize * this.ratio, this.cellSize * this.ratio);
 	};
 
-	console.log(totalCount);
-
 	// Calculating text stats
 	aTime = activeExamples > 0 ? Math.round(aTime / activeExamples)/1000+' с' : 'Еще не посчиталось'; 
 	this.nodes.totalCount.innerHTML = totalCount;
@@ -360,13 +365,16 @@ CoreS.prototype.updateStats = function(){
 	this.updateGrade();
 };
 CoreS.prototype.updateGrade = function(){
-	if (this.grade == 0){
+	let currentGrade = this.grade;
+	if (this.grade == -1){
+		this.grade = 0;
+	}
+	else if (this.grade == 0){
 		var promote = true;
 		for (let i = 0; i < this.sortedStorage[0].length; i++){
 			if (this.sortedStorage[0][i].weight > 50) promote = false;
 		}
-		console.log(promote);
-		if (promote) this.grade = 1;
+		if (promote || this.combo > 19) this.grade = 1;
 	} else if (this.grade == 1){
 		var promote = true;
 		for (let i = 0; i < this.sortedStorage[1].length; i++){
@@ -409,10 +417,16 @@ CoreS.prototype.updateGrade = function(){
 		}
 		if (promote > 50) this.grade = 7;
 	}
-	//this.grade = 7;
-	
-	this.nodes.h1.innerHTML = this.grades[this.grade].header;
-	this.nodes.text.innerHTML = this.grades[this.grade].text;
+	console.log(this.grade, currentGrade, this.mode);
+	if (this.grade > currentGrade && this.mode > 0){
+		this.lvlUp();
+	}
+	if (!this.help){
+		this.nodes.h1.innerHTML = this.grades[this.grade].header;
+		this.nodes.text.innerHTML = this.grades[this.grade].text;
+	} else {
+		this.help = false;
+	}
 };
 CoreS.prototype.updateLayout = function(){
 	var hRatio = .5;
@@ -444,12 +458,13 @@ CoreS.prototype.deviceSetup = function(){
 	}
 };
 CoreS.prototype.switchMode = function(signal){
+	let from = this.mode;
 	if (this.mode != 0 && signal == 0){
 		this.count = 0;
 		this.justFired = false;
+		this.updateStats();
 		this.mode = 0;
 		if (this.isMobile) this.nodes.numpad.blur();
-		this.updateStats();
 		if (this.currentExample){
 			this.currentExample = false;
 			this.exampleOut(this.stopHammerTime.bind(this));
@@ -571,7 +586,8 @@ CoreS.prototype.save = function(trueSave){
 	var saveObj = {
 		storage : this.storage,
 		grade : this.grade,
-		combo : this.combo
+		combo : this.combo,
+		help : this.help
 	};
 	var saveString = JSON.stringify(saveObj);
 	localStorage.setItem('SUM', saveString);
@@ -585,6 +601,7 @@ CoreS.prototype.load = function(){
 	if (memory){
 		this.combo = memory.combo;
 		this.grade = memory.grade;
+		this.help = memory.help;
 		this.initSortedStorage();
 		for (let i=0;i<10000;i++){		
 			this.storage[i] = new Cell(this.defaultWeight, this.sortedStorage, Math.floor(i/100) + 1,i%100 + 1,memory.storage[i].weight,memory.storage[i].timesShown,memory.storage[i].lastFired,memory.storage[i].lastTime);
@@ -602,3 +619,13 @@ CoreS.prototype.drop = function(){
             location.reload();
     	}
 };
+CoreS.prototype.lvlUp = function(){
+	let lvlup = document.createElement('div');
+	let container = this.container;
+	lvlup.addEventListener('animationend', function(){
+		console.log('LVLUP');
+		container.removeChild(lvlup);
+	});
+	lvlup.classList.add('ssmt_lvlUp');
+	container.appendChild(lvlup);
+}
