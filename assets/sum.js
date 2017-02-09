@@ -139,7 +139,7 @@ function CoreS(container,linkArray,saveFunction,loadString){
 			{
 				id : 3,
 				header : 'Глава 4: Грядущая буря',
-				text : 'По-настоящему трудные примеры уже близко. Пора размяться по-серьезному. Чтобы пройти дальше, нужно решать без ошибок. Это быстрее, чем спешить, но ошибаться.',
+				text : 'По-настоящему трудные примеры уже близко. Пора размяться по-серьезному. Чтобы пройти дальше, нужно решать без ошибок, так что не спеши.',
 				image : false
 			},
 			{
@@ -206,7 +206,7 @@ function CoreS(container,linkArray,saveFunction,loadString){
 	}
 
 	//Now adding all entrails
-	this.guts = '<div class = "ssmt_half1"><div class = "ssmt_header" style="opacity: 0"><h1 class = "ssmt_headerh1">Пора научиться складывать быстро</h1><p class = "ssmt_headertext">Справа — таблица из чисел от 1 до 100, которые мы будем складывать.<br />Разберемся по ходу дела! Жми энтер или тыкай в экран, если в него можно тыкать и начинай решать простые примеры.</p><div class = "ssmt_stats"><p>Примеров решено: <span class = "ssmt_totalCount">0</span></p><p>Комбо без ошибок: <span class = "ssmt_combo">0</span></p><p>Среднее время на ответ: <span class = "ssmt_atime">0</span></p><p>Нелюбимый пример: <span class = "ssmt_worst">0</span></p></div></div></div><div class = "ssmt_half2"><canvas class = "ssmt_canvas"></canvas></div><div class ="ssmt_hint"></div><div class ="ssmt_mark"></div><div class = "ssmt_example">x × y = </div><input class="ssmt_numpad" type="tel">';
+	this.guts = '<div class = "ssmt_half1"><div class = "ssmt_header" style="opacity: 0"><h1 class = "ssmt_headerh1">Пора научиться складывать быстро</h1><p class = "ssmt_headertext">Справа — таблица из чисел от 1 до 100, которые мы будем складывать.<br />Разберемся по ходу дела! Жми энтер или тыкай в экран, если в него можно тыкать и начинай решать простые примеры.<br /><img src="assets/enter.png" width="300" height="100" style="margin-top:30px; margin-bottom:40px" /></p><div class = "ssmt_stats"><p>Примеров решено: <span class = "ssmt_totalCount">0</span></p><p>Комбо без ошибок: <span class = "ssmt_combo">0</span></p><p>Среднее время на ответ: <span class = "ssmt_atime">0</span></p><p>Нелюбимый пример: <span class = "ssmt_worst">0</span></p></div><div class="ssmt_credits">Версия 0.3 <a class="ssmt_drop" href="#">Сбросить результаты</a></div></div></div><div class = "ssmt_half2"><canvas class = "ssmt_canvas"></canvas></div><div class ="ssmt_hint"></div><div class ="ssmt_mark"></div><div class = "ssmt_example">x × y = </div><input class="ssmt_numpad" type="tel">';
 	this.container.innerHTML = this.guts;
 
 	//Getting entrails as variables
@@ -229,65 +229,72 @@ function CoreS(container,linkArray,saveFunction,loadString){
 
 	this.nodes.hint = document.getElementsByClassName('ssmt_hint')[0];
 	this.nodes.mark = document.getElementsByClassName('ssmt_mark')[0];
+	this.nodes.drop = document.getElementsByClassName('ssmt_drop')[0];
 
 	//Setting up event listeners
-	var shitcodeThis = this;
+	
 	window.onresize = function(e){
-		shitcodeThis.updateLayout();
+		this.updateLayout();
 		console.log('Why are you moving stuff all around?')
-	};
+	}.bind(this);
 	window.addEventListener('keydown',function(e){
-		if (shitcodeThis.mode == 1){
+		if (this.mode == 1){
 			if (e.keyCode <= 57){
-				shitcodeThis.acceptKey(e.keyCode - 48);
+				this.acceptKey(e.keyCode - 48);
 			} else {
-				shitcodeThis.acceptKey(e.keyCode - 96)
+				this.acceptKey(e.keyCode - 96)
 			}
-		} else if (shitcodeThis.mode == 0 && e.keyCode == 13){
-			shitcodeThis.switchMode(1);
+		} else if (this.mode == 0 && e.keyCode == 13){
+			this.switchMode(1);
 		}
-	});
+	}.bind(this));
 	document.body.addEventListener('touchstart',function(){
-		if (shitcodeThis.isMobile){
-			if (shitcodeThis.mode == 0) {
-				shitcodeThis.switchMode(1);
+		if (this.isMobile){
+			if (this.mode == 0) {
+				this.switchMode(1);
 			}
-			shitcodeThis.nodes.numpad.focus();
+			this.nodes.numpad.focus();
 		}
-	});
+	}.bind(this));
 	this.nodes.numpad.addEventListener('blur',function(){
-		if (shitcodeThis.isMobile && shitcodeThis.mode == 1){
-			shitcodeThis.numpad.focus();
+		if (this.isMobile && this.mode == 1){
+			this.numpad.focus();
 		}
-	});
+	}.bind(this));
 	this.nodes.canvas.addEventListener('mousemove',function(e){
-		shitcodeThis.nodes.hint.style.left = (e.clientX - shitcodeThis.container.getBoundingClientRect().left) + 'px';
-		shitcodeThis.nodes.hint.style.top = (e.clientY - shitcodeThis.container.getBoundingClientRect().top - 80) + 'px';
+		if (this.mode == 0){
+			this.nodes.hint.style.left = (e.clientX - this.container.getBoundingClientRect().left) + 'px';
+			this.nodes.hint.style.top = (e.clientY - this.container.getBoundingClientRect().top - 80) + 'px';
 
-		var pointerX = Math.floor(e.offsetX);
-		var pointerY = Math.floor(e.offsetY);
+			var pointerX = Math.floor(e.offsetX);
+			var pointerY = Math.floor(e.offsetY);
 
-		if (pointerX < shitcodeThis.cellSize*100 && pointerY < shitcodeThis.cellSize*100){
-			var pointer = Math.floor(pointerX/shitcodeThis.cellSize) + Math.floor(pointerY/shitcodeThis.cellSize)*100;
-		} else {
-			var pointer = -1;
-		};
+			if (pointerX < this.cellSize*100 && pointerY < this.cellSize*100){
+				var pointer = Math.floor(pointerX/this.cellSize) + Math.floor(pointerY/this.cellSize)*100;
+			} else {
+				var pointer = -1;
+			};
 
-		if (shitcodeThis.storage[pointer]) {
-			shitcodeThis.nodes.hint.innerHTML = shitcodeThis.storage[pointer].string + shitcodeThis.storage[pointer].c + '<br />Сложность: ' + (shitcodeThis.storage[pointer].grade+1) + '<br />' + (shitcodeThis.storage[pointer].timesShown > 0 ? 'Встречался '+shitcodeThis.storage[pointer].timesShown+ ([2,3,4].indexOf(shitcodeThis.storage[pointer].timesShown%10) != -1 ? ' раза' : ' раз') : 'Не встречался');
-			shitcodeThis.nodes.mark.style.width = shitcodeThis.nodes.mark.style.height = shitcodeThis.cellSize/2 + 'px';
-			shitcodeThis.nodes.mark.style.left = ((pointer%100)*shitcodeThis.cellSize + shitcodeThis.nodes.canvas.getBoundingClientRect().left - shitcodeThis.container.getBoundingClientRect().left + shitcodeThis.cellSize/4)+'px';
-			shitcodeThis.nodes.mark.style.top = (Math.floor(pointer/100)*shitcodeThis.cellSize + shitcodeThis.nodes.canvas.getBoundingClientRect().top - shitcodeThis.container.getBoundingClientRect().top + shitcodeThis.cellSize/4)+'px';
+			if (this.storage[pointer]) {
+				this.nodes.hint.innerHTML = this.storage[pointer].string + this.storage[pointer].c + '<br />Сложность: ' + (this.storage[pointer].grade+1) + '<br />' + (this.storage[pointer].timesShown > 0 ? 'Встречался '+this.storage[pointer].timesShown+ ([2,3,4].indexOf(this.storage[pointer].timesShown%10) != -1 ? ' раза' : ' раз') : 'Не встречался');
+				this.nodes.mark.style.width = this.nodes.mark.style.height = this.cellSize/2 + 'px';
+				this.nodes.mark.style.left = ((pointer%100)*this.cellSize + this.nodes.canvas.getBoundingClientRect().left - this.container.getBoundingClientRect().left + this.cellSize/4)+'px';
+				this.nodes.mark.style.top = (Math.floor(pointer/100)*this.cellSize + this.nodes.canvas.getBoundingClientRect().top - this.container.getBoundingClientRect().top + this.cellSize/4)+'px';
+			}
 		}
-	});
+	}.bind(this));
+		
 	this.nodes.canvas.addEventListener('mouseover',function(e){
-		shitcodeThis.nodes.hint.style.display = 'flex';
-		shitcodeThis.nodes.mark.style.display = 'block';
-	});
+		this.nodes.hint.style.display = 'flex';
+		this.nodes.mark.style.display = 'block';
+	}.bind(this));
 	this.nodes.canvas.addEventListener('mouseleave',function(e){
-		shitcodeThis.nodes.hint.style.display = 'none';
-		shitcodeThis.nodes.mark.style.display = 'none';
-	});
+		this.nodes.hint.style.display = 'none';
+		this.nodes.mark.style.display = 'none';
+	}.bind(this));
+	this.nodes.drop.addEventListener('click',function(e){
+		this.drop();
+	}.bind(this));
 
 	//Looking for something to load
 	if (this.loadString){
@@ -380,7 +387,7 @@ CoreS.prototype.updateGrade = function(){
 		for (let i = 0; i < this.sortedStorage[1].length; i++){
 			if (this.sortedStorage[1][i].weight > 50) promote = false;
 		}
-		if (promote) this.grade = 2;
+		if (promote || this.combo > 39) this.grade = 2;
 	} else if (this.grade == 2){
 		var promote = 0;
 		for (let i = 0; i < this.sortedStorage[2].length; i++){
@@ -417,7 +424,7 @@ CoreS.prototype.updateGrade = function(){
 		}
 		if (promote > 50) this.grade = 7;
 	}
-	console.log(this.grade, currentGrade, this.mode);
+
 	if (this.grade > currentGrade && this.mode > 0){
 		this.lvlUp();
 	}
@@ -473,15 +480,18 @@ CoreS.prototype.switchMode = function(signal){
 		}
 		
 	} else if (this.mode != 1 && signal == 1){
+		
+		this.nodes.hint.style.display = 'none';
+		this.nodes.mark.style.display = 'none';
+		
 		this.nodes.header.style.marginLeft = '0px';
 
 		alive.animate(this.nodes.header,'margin-left','-100px',900,'CubeAccel');
 
-		var shitcodeThis = this;
 		alive.animate(this.nodes.header,'opacity',0,900,function(){
-			shitcodeThis.mode = 1;
-			shitcodeThis.fireExample();
-		});
+			this.mode = 1;
+			this.fireExample();
+		}.bind(this));
 
 		this.dissolveTable();
 	};
@@ -504,6 +514,12 @@ CoreS.prototype.fireExample = function(){
 		if (this.storage[i] != this.justFired && this.storage[i].grade == this.grade){
 			for (let j=0;j<this.storage[i].weight;j++){
 				cauldron.push(this.storage[i]);
+			}
+		} else if (this.storage[i] != this.justFired && this.storage[i].grade < this.grade){
+			if (this.storage[i].weight > 100){
+				for (let j=0;j<this.storage[i].weight;j++){
+					cauldron.push(this.storage[i]);
+				}
 			}
 		}
 	}
@@ -622,10 +638,17 @@ CoreS.prototype.drop = function(){
 CoreS.prototype.lvlUp = function(){
 	let lvlup = document.createElement('div');
 	let container = this.container;
-	lvlup.addEventListener('animationend', function(){
-		console.log('LVLUP');
-		container.removeChild(lvlup);
-	});
-	lvlup.classList.add('ssmt_lvlUp');
+	//lvlup.addEventListener('animationend', function(){
+	//	console.log('LVLUP');
+	//	container.removeChild(lvlup);
+	//});
+	lvlup.innerHTML = 'НОВЫЙ УРОВЕНЬ!';
+	lvlup.classList.add('ssmt_lvlUp2');
 	container.appendChild(lvlup);
+	alive.animate(lvlup,'opacity',1,300,function(){
+			alive.animate(this.element,'opacity',0,3000,600,function(){console.log('done')},'CubeAccel');
+		},'CubeDecel');
+	alive.animate(lvlup,'margin-top','-150px',300,function(){
+			alive.animate(this.element,'margin-top','-300px',3001,600,function(){container.removeChild(lvlup);},'CubeAccel');
+		},'CubeDecel');
 }
